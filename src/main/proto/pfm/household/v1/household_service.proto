@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package pfm.household.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "dev.zambone.proto.household.v1";
+option java_outer_classname = "HouseholdServiceProto";
+
+service HouseholdService {
+  rpc CreateHousehold (CreateHouseholdRequest) returns (CreateHouseholdResponse);
+  rpc GetHousehold (GetHouseholdRequest) returns (GetHouseholdResponse);
+  rpc UpdateHousehold (UpdateHouseholdRequest) returns (UpdateHouseholdResponse);
+}
+
+message CreateHouseholdRequest {
+  string name = 1;
+}
+
+message CreateHouseholdResponse {
+  Household household = 1;
+}
+
+message GetHouseholdRequest {
+  string household_id = 1;
+}
+
+message GetHouseholdResponse {
+  Household household = 1;
+}
+
+message UpdateHouseholdRequest {
+  string household_id = 1;
+  string name = 2;
+  google.protobuf.Timestamp version = 3;
+}
+
+message UpdateHouseholdResponse {
+  Household household = 1;
+}
+
+message Household {
+  string id = 1;
+  string name = 2;
+}

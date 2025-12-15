@@ -13,10 +13,8 @@ public class AppUserLogic {
     this.passwordHasher = passwordHasher;
   }
 
-  public AppUser createUser(String email, String rawPassword, String fullName) {
-
-    // TODO: Implement user context to fetch creator ID
-    var user = new AppUser(UUID.randomUUID(), email, passwordHasher.hash(rawPassword), fullName, Instant.now(), null);
+  public AppUser createUser(UserContext context, String email, String rawPassword, String fullName) {
+    var user = new AppUser(UUID.randomUUID(), email, passwordHasher.hash(rawPassword), fullName, Instant.now(), Instant.now(), context.actorId(), context.actorId());
 
     return repository.save(user);
   }

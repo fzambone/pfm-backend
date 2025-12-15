@@ -22,5 +22,4 @@ public class FakeAppUserRepository implements AppUserRepository {
       return Optional.ofNullable(table.get(email));
   }
 
-
 }

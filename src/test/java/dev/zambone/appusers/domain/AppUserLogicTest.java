@@ -12,19 +12,20 @@ public class AppUserLogicTest {
 
   private AppUserLogic logic;
   private FakeAppUserRepository fakeRepository;
+  private UserContext context;
 
   @BeforeEach
-  public void setUp() {
+  void setUp() {
     fakeRepository = new FakeAppUserRepository();
-
     PasswordHasher fakeHasher = raw -> raw + "_hashed_for_test";
-
     logic = new AppUserLogic(fakeRepository, fakeHasher);
+    context = new UserContext(UUID.randomUUID());
   }
 
   @Test
   public void shouldCreateUser_successfully() {
     var createdUser =  logic.createUser(
+        context,
         "test@zambone.dev",
         "secret123",
         "Test User"
@@ -46,6 +47,19 @@ public class AppUserLogicTest {
     var savedUser = fakeRepository.findByEmail("test@zambone.dev");
     assertThat(savedUser).isNotNull();
     assertThat(savedUser.get()).isEqualTo(createdUser);
+  }
+
+  @Test
+  public void shouldSetCreatedBy_fromContext() {
+    var createdUser = logic.createUser(
+        context,
+        "test@zambone.dev",
+        "secret123",
+        "Test Context user"
+    );
+
+    // Verify auditing trail user
+    assertThat(createdUser.createdBy()).isEqualTo(context.actorId());
   }
 
 

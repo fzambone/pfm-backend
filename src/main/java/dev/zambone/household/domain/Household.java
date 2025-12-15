@@ -1,13 +1,12 @@
-package dev.zambone.appusers.domain;
+package dev.zambone.household.domain;
 
 import java.time.Instant;
 import java.util.UUID;
 
-public record AppUser(
+public record Household(
     UUID id,
-    String email,
-    String passwordHash,
-    String fullName,
+    String name,
+    Boolean isActive,
     Instant createdAt,
     Instant updatedAt,
     UUID createdBy,
