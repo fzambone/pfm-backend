@@ -1,0 +1,15 @@
+### Create a new Household
+GRPC localhost:50051/pfm.household.v1.HouseholdService/CreateHousehold
+x-user-id: 11111111-1111-1111-1111-111111111111
+
+{
+  "name": "The Zambone Penthouse 2"
+}
+
+### Get a Household by household Id
+GRPC localhost:50051/pfm.household.v1.HouseholdService/GetHousehold
+x-user-id: 11111111-1111-1111-1111-111111111111
+
+{
+  "household_id": "884aad1f-0bc3-44eb-b60a-8e4f04ddd062"
+}
