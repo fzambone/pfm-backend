@@ -11,5 +11,15 @@ GRPC localhost:50051/pfm.household.v1.HouseholdService/GetHousehold
 x-user-id: 11111111-1111-1111-1111-111111111111
 
 {
-  "household_id": "884aad1f-0bc3-44eb-b60a-8e4f04ddd062"
+  "household_id": "9cd4c47e-5ad7-469b-ae31-d3e85454aaf7"
+}
+
+### Update a Household by Household Id (Admin only)
+GRPC localhost:50051/pfm.household.v1.HouseholdService/UpdateHousehold
+x-user-id: 11111111-1111-1111-1111-111111111111
+
+{
+  "household_id": "9cd4c47e-5ad7-469b-ae31-d3e85454aaf7",
+  "name": "Updated Household Name",
+  "version": "2025-12-16T22:59:01.642252Z"
 }

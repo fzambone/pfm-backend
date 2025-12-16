@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
-
 import java.util.UUID;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -34,7 +33,7 @@ public class SqlHouseholdRepositoryTest {
 
   @Test
   void shouldSaveAndFindHousehold_andVerifyAdminRole() {
-    var user = AppUserFactory.createAndPersistUser(appUserRepository, "test@zambone.dev");
+    var user = AppUserFactory.createAndPersistUser(appUserRepository, "save@zambone.dev");
     var household = HouseholdFactory.createAndSaveHousehold(householdRepository, householdMemberRepository, "Test Household", user);
 
     var foundHousehold = householdRepository.findByIdAndUserId(household.id(), user.id());
@@ -57,5 +56,12 @@ public class SqlHouseholdRepositoryTest {
     });
   }
 
+  @Test
+  void shouldUpdateHousehold_successfully_whenVersionMatches() {
+    var user = AppUserFactory.createAndPersistUser(appUserRepository, "update@zambone.dev");
+    var household = HouseholdFactory.createAndSaveHousehold(householdRepository, householdMemberRepository, "Update household", user);
+    var updatedHousehold = householdRepository.update(household, household.updatedAt());
+    assertThat(updatedHousehold).isTrue();
 
+  }
 }

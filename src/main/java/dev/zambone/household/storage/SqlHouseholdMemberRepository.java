@@ -8,13 +8,16 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.sql.*;
+import java.util.Calendar;
 import java.util.Optional;
+import java.util.TimeZone;
 import java.util.UUID;
 
 public class SqlHouseholdMemberRepository implements HouseholdMemberRepository {
 
   private static final Logger logger = LoggerFactory.getLogger(SqlHouseholdMemberRepository.class);
   private final DataSource dataSource;
+  private static final Calendar UTC = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
   public SqlHouseholdMemberRepository(DataSource dataSource) {
     this.dataSource = dataSource;
@@ -35,7 +38,7 @@ public class SqlHouseholdMemberRepository implements HouseholdMemberRepository {
       preparedStatement.setObject(i++, householdMember.householdId());
       preparedStatement.setObject(i++, householdMember.appUserId());
       preparedStatement.setString(i++, householdMember.role().toString());
-      preparedStatement.setTimestamp(i++, Timestamp.from(householdMember.joinedAt()));
+      preparedStatement.setTimestamp(i++, Timestamp.from(householdMember.joinedAt()), UTC);
       preparedStatement.setObject(i++, householdMember.invitedBy());
 
       try (ResultSet resultSet = preparedStatement.executeQuery()) {

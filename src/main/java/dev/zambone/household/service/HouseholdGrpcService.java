@@ -9,6 +9,9 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.ConcurrentModificationException;
 import java.util.UUID;
 
 public class HouseholdGrpcService extends HouseholdServiceGrpc.HouseholdServiceImplBase {
@@ -35,10 +38,7 @@ public class HouseholdGrpcService extends HouseholdServiceGrpc.HouseholdServiceI
       }
 
       var domainHousehold = householdLogic.create(context, request.getName());
-      Household protoHousehold = Household.newBuilder()
-          .setId(domainHousehold.id().toString())
-          .setName(domainHousehold.name())
-          .build();
+      var protoHousehold = convertToProto(domainHousehold);
 
       CreateHouseholdResponse response = CreateHouseholdResponse.newBuilder()
           .setHousehold(protoHousehold)
@@ -46,6 +46,13 @@ public class HouseholdGrpcService extends HouseholdServiceGrpc.HouseholdServiceI
 
       responseStreamObserver.onNext(response);
       responseStreamObserver.onCompleted();
+
+    } catch (IllegalArgumentException e) {
+      logger.error("Failed to create Household", e);
+      responseStreamObserver.onError(
+          Status.INVALID_ARGUMENT
+              .withDescription(e.getMessage())
+              .asRuntimeException());
 
     } catch (Exception e) {
       logger.error("Failed to create Household", e);
@@ -70,10 +77,7 @@ public class HouseholdGrpcService extends HouseholdServiceGrpc.HouseholdServiceI
       }
 
       var domainHousehold = householdLogic.getHousehold(context, UUID.fromString(request.getHouseholdId()));
-      Household protoHousehold = Household.newBuilder()
-          .setId(domainHousehold.id().toString())
-          .setName(domainHousehold.name())
-          .build();
+      var protoHousehold = convertToProto(domainHousehold);
 
       GetHouseholdResponse response = GetHouseholdResponse.newBuilder()
           .setHousehold(protoHousehold)
@@ -82,7 +86,7 @@ public class HouseholdGrpcService extends HouseholdServiceGrpc.HouseholdServiceI
       responseStreamObserver.onNext(response);
       responseStreamObserver.onCompleted();
     } catch (IllegalArgumentException e) {
-      logger.warn("Household lookup failed: {}", e.getMessage());
+      logger.error("Household lookup failed: {}", e.getMessage());
       responseStreamObserver.onError(
           Status.NOT_FOUND
               .withDescription("Household not found or access denied")
@@ -94,5 +98,80 @@ public class HouseholdGrpcService extends HouseholdServiceGrpc.HouseholdServiceI
               .withDescription("Internal system error")
               .asRuntimeException());
     }
+  }
+
+  @Override
+  public void updateHousehold(
+      UpdateHouseholdRequest request,
+      StreamObserver<UpdateHouseholdResponse> responseStreamObserver) {
+
+    try {
+      UserContext context = AuthConstants.USER_CONTEXT_KEY.get();
+      if (context == null) throw new IllegalArgumentException("No user context");
+
+      UUID id = UUID.fromString(request.getHouseholdId());
+
+      Instant version = Instant.ofEpochSecond(
+          request.getVersion().getSeconds(),
+          request.getVersion().getNanos()
+      );
+
+      var updatedHousehold = householdLogic.updateHousehold(
+          context,
+          id,
+          request.getName(),
+          version
+      );
+      var protoHousehold = convertToProto(updatedHousehold);
+
+      UpdateHouseholdResponse response = UpdateHouseholdResponse.newBuilder()
+          .setHousehold(protoHousehold)
+          .build();
+
+      responseStreamObserver.onNext(response);
+      responseStreamObserver.onCompleted();
+
+    } catch (ConcurrentModificationException e) {
+      // CRITICAL CONCURRENCY MAPPING
+      logger.error("Failed to update Household, data has changed during update: {}", e.getMessage());
+      responseStreamObserver.onError(Status.ABORTED
+          .withDescription("Data has changed. Please refresh and try again.")
+          .asRuntimeException());
+    } catch (IllegalArgumentException e) {
+      // Handle Validation/Auth errors -> INVALID_ARGUMENT or NOT_FOUND
+      logger.error("Failed to update Household, Validation/Auth error: {}", e.getMessage());
+      responseStreamObserver.onError(Status.INVALID_ARGUMENT
+          .withDescription(e.getMessage())
+          .asRuntimeException());
+    } catch (Exception e) {
+      logger.error("Internal failure updating Household: {}", e.getMessage());
+      responseStreamObserver.onError(Status.INTERNAL
+          .withDescription("Internal error")
+          .asRuntimeException());
+    }
+  }
+
+  Household convertToProto(dev.zambone.household.domain.Household domain) {
+    var builder = Household.newBuilder()
+        .setId(domain.id().toString())
+        .setName(domain.name())
+        .setIsActive(domain.isActive());
+
+    if (domain.createdAt() != null) {
+      builder.setCreatedAt(toProtoTimestamp(domain.createdAt()));
+    }
+    if (domain.updatedAt() != null) {
+      builder.setUpdatedAt(toProtoTimestamp(domain.updatedAt()));
+    }
+
+    return builder.build();
+
+  }
+
+  private com.google.protobuf.Timestamp toProtoTimestamp(java.time.Instant instant) {
+    return com.google.protobuf.Timestamp.newBuilder()
+        .setSeconds(instant.getEpochSecond())
+        .setNanos(instant.getNano())
+        .build();
   }
 }

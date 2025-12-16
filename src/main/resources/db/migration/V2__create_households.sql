@@ -3,8 +3,8 @@ CREATE TABLE households (
   id          UUID          PRIMARY KEY ,
   name        VARCHAR(255)  NOT NULL ,
   is_active   BOOLEAN       NOT NULL ,
-  created_at  TIMESTAMP     NOT NULL ,
-  updated_at  TIMESTAMP     NOT NULL ,
+  created_at  TIMESTAMPTZ   NOT NULL ,
+  updated_at  TIMESTAMPTZ   NOT NULL ,
   created_by  UUID          NOT NULL ,
   updated_by  UUID          NOT NULL ,
 
@@ -21,7 +21,7 @@ CREATE TABLE household_members (
   household_id  UUID        NOT NULL ,
   app_user_id   UUID        NOT NULL ,
   role          VARCHAR(50) NOT NULL ,
-  joined_at     TIMESTAMP   NOT NULL ,
+  joined_at     TIMESTAMPTZ NOT NULL ,
   invited_by    UUID        NOT NULL ,
 
   PRIMARY KEY (household_id, app_user_id) ,

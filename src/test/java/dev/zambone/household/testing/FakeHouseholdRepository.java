@@ -3,6 +3,7 @@ package dev.zambone.household.testing;
 import dev.zambone.household.domain.Household;
 import dev.zambone.household.domain.HouseholdRepository;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -27,5 +28,19 @@ public class FakeHouseholdRepository implements HouseholdRepository {
   public Household save(Household household) {
     table.put(household.id(), household);
     return table.get(household.id());
+  }
+
+  @Override
+  public boolean update(Household household, Instant version) {
+    Household existing = table.get(household.id());
+
+    if (existing == null) return false;
+
+    if (!existing.updatedAt().equals(version)) {
+      return false;
+
+    }
+    table.put(household.id(), household);
+    return true;
   }
 }

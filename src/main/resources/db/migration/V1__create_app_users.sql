@@ -4,8 +4,8 @@ CREATE TABLE app_users (
   email         VARCHAR(255)  NOT NULL UNIQUE ,
   password_hash VARCHAR(255)  NOT NULL ,
   full_name     VARCHAR(255)  NOT NULL ,
-  created_at    TIMESTAMP     NOT NULL ,
-  updated_at    TIMESTAMP     NOT NULL ,
+  created_at    TIMESTAMPTZ   NOT NULL ,
+  updated_at    TIMESTAMPTZ   NOT NULL ,
   created_by    UUID          NOT NULL ,
   updated_by    UUID          NOT NULL ,
 

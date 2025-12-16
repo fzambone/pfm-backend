@@ -6,6 +6,7 @@ import dev.zambone.household.testing.FakeHouseholdRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ConcurrentModificationException;
 import java.util.UUID;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -15,18 +16,19 @@ public class HouseholdLogicTest {
 
 
   private HouseholdLogic householdLogic;
+  private FakeHouseholdRepository fakeHouseholdRepository;
   private FakeHouseholdMemberRepository fakeHouseholdMemberRepository;
 
   @BeforeEach
   void setUp() {
-    FakeHouseholdRepository fakeHouseholdRepository = new FakeHouseholdRepository();
+    fakeHouseholdRepository = new FakeHouseholdRepository();
     fakeHouseholdMemberRepository = new FakeHouseholdMemberRepository();
 
     householdLogic = new HouseholdLogic(fakeHouseholdRepository, fakeHouseholdMemberRepository);
   }
 
   @Test
-  public void shouldCreate_successfullyWithAdmin() {
+  void shouldCreate_successfullyWithAdmin() {
     var userId = UUID.randomUUID();
     var createdHousehold = householdLogic.create(
         new UserContext(userId),
@@ -45,7 +47,7 @@ public class HouseholdLogicTest {
   }
 
   @Test
-  public void shouldGetHousehold_successfully_whenUserIsMember() {
+  void shouldGetHousehold_successfully_whenUserIsMember() {
     var userId = UUID.randomUUID();
     var context = new UserContext(userId);
 
@@ -63,7 +65,7 @@ public class HouseholdLogicTest {
   }
 
   @Test
-  public void shouldThrowException_whenGettingHousehold_ifUserIsNotMember() {
+  void shouldThrowException_whenGettingHousehold_ifUserIsNotMember() {
     var ownerId = UUID.randomUUID();
     var intruderId = UUID.randomUUID();
 
@@ -74,6 +76,47 @@ public class HouseholdLogicTest {
 
     assertThrows(IllegalArgumentException.class, () -> {
       householdLogic.getHousehold(new UserContext(intruderId), createdHousehold.id());
+    });
+  }
+
+  @Test
+  void shouldUpdateHousehold_successfully_whenVersionMatches() {
+    var context = new UserContext(UUID.randomUUID());
+    var createdHousehold = householdLogic.create(
+        context,
+        "Update household"
+    );
+    var newName = "Updated Palace";
+    var updatedHousehold = householdLogic.updateHousehold(
+        context,
+        createdHousehold.id(),
+        newName,
+        createdHousehold.updatedAt()
+    );
+
+    assertThat(updatedHousehold).isNotNull();
+
+    var stored = fakeHouseholdRepository.findByIdAndUserId(createdHousehold.id(), context.actorId());
+    assertThat(stored.isPresent()).isTrue();
+    assertThat(stored.get().name()).isEqualTo(newName);
+  }
+
+  @Test
+  void shouldThrowConcurrentModificationException_whenVersionMismatch() {
+    var context = new UserContext(UUID.randomUUID());
+    var createdHousehold = householdLogic.create(
+        context,
+        "Update household"
+    );
+    var staleVersion = createdHousehold.updatedAt().minusSeconds(10);
+
+    assertThrows(ConcurrentModificationException.class, () -> {
+      householdLogic.updateHousehold(
+          context,
+          createdHousehold.id(),
+          "Hacker name",
+          staleVersion
+      );
     });
   }
 }
