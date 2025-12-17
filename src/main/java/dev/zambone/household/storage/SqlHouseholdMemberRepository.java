@@ -28,7 +28,11 @@ public class SqlHouseholdMemberRepository implements HouseholdMemberRepository {
     var sql = """
         INSERT INTO household_members (household_id, app_user_id, role, joined_at, invited_by)
         VALUES (?, ?, ?, ?, ?)
-        RETURNING *
+        ON CONFLICT (household_id, app_user_id)
+        DO UPDATE SET
+                    deleted_at = NULL,
+                    role = EXCLUDED.role,
+                    joined_at = EXCLUDED.joined_at
         """;
 
     try (Connection connection = dataSource.getConnection();
@@ -120,6 +124,7 @@ public class SqlHouseholdMemberRepository implements HouseholdMemberRepository {
           UUID.fromString(rs.getString("app_user_id")),
           Role.valueOf(rs.getString("role")),
           rs.getTimestamp("joined_at").toInstant(),
+          null,
           UUID.fromString(rs.getString("invited_by"))
       );
     }

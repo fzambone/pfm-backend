@@ -19,6 +19,7 @@ public class HouseholdFactory {
         true,
         Instant.now().truncatedTo(ChronoUnit.MICROS),
         Instant.now().truncatedTo(ChronoUnit.MICROS),
+        null,
         user.id(),
         user.id()
     );
@@ -28,6 +29,7 @@ public class HouseholdFactory {
         user.id(),
         Role.ADMIN,
         Instant.now().truncatedTo(ChronoUnit.MICROS),
+        null,
         user.id()
     );
 

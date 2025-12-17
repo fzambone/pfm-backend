@@ -47,16 +47,16 @@ public class HouseholdLogicTest {
   }
 
   @Test
-  void shouldGetHousehold_successfully_whenUserIsMember() {
+  void shouldGet_successfully_whenUserIsMember() {
     var userId = UUID.randomUUID();
-    var context = new UserContext(userId);
+    var userContext = new UserContext(userId);
 
     var createdHousehold = householdLogic.create(
-        context,
+        userContext,
         "Test household"
     );
 
-    var fetchedHousehold = householdLogic.getHousehold(context, createdHousehold.id());
+    var fetchedHousehold = householdLogic.get(userContext, createdHousehold.id());
 
     assertThat(fetchedHousehold).isNotNull();
     assertThat(fetchedHousehold.name()).isEqualTo("Test household");
@@ -75,20 +75,20 @@ public class HouseholdLogicTest {
     );
 
     assertThrows(IllegalArgumentException.class, () -> {
-      householdLogic.getHousehold(new UserContext(intruderId), createdHousehold.id());
+      householdLogic.get(new UserContext(intruderId), createdHousehold.id());
     });
   }
 
   @Test
-  void shouldUpdateHousehold_successfully_whenVersionMatches() {
-    var context = new UserContext(UUID.randomUUID());
+  void shouldUpdate_successfully_whenVersionMatches() {
+    var userContext = new UserContext(UUID.randomUUID());
     var createdHousehold = householdLogic.create(
-        context,
+        userContext,
         "Update household"
     );
     var newName = "Updated Palace";
-    var updatedHousehold = householdLogic.updateHousehold(
-        context,
+    var updatedHousehold = householdLogic.update(
+        userContext,
         createdHousehold.id(),
         newName,
         createdHousehold.updatedAt()
@@ -96,27 +96,48 @@ public class HouseholdLogicTest {
 
     assertThat(updatedHousehold).isNotNull();
 
-    var stored = fakeHouseholdRepository.findByIdAndUserId(createdHousehold.id(), context.actorId());
+    var stored = fakeHouseholdRepository.findByIdAndUserId(createdHousehold.id(), userContext.actorId());
     assertThat(stored.isPresent()).isTrue();
     assertThat(stored.get().name()).isEqualTo(newName);
   }
 
   @Test
   void shouldThrowConcurrentModificationException_whenVersionMismatch() {
-    var context = new UserContext(UUID.randomUUID());
+    var userContext = new UserContext(UUID.randomUUID());
     var createdHousehold = householdLogic.create(
-        context,
+        userContext,
         "Update household"
     );
     var staleVersion = createdHousehold.updatedAt().minusSeconds(10);
 
     assertThrows(ConcurrentModificationException.class, () -> {
-      householdLogic.updateHousehold(
-          context,
+      householdLogic.update(
+          userContext,
           createdHousehold.id(),
           "Hacker name",
           staleVersion
       );
     });
+  }
+
+  @Test
+  void shouldDelete_successfully_whenVersionMatches() {
+    var userContext = new UserContext(UUID.randomUUID());
+    var createdHousehold = householdLogic.create(
+        userContext,
+        "Delete household"
+    );
+    var deletedHousehold = householdLogic.delete(
+        userContext,
+        createdHousehold.id(),
+        createdHousehold.updatedAt());
+
+    assertThat(deletedHousehold).isNotNull();
+
+    var stored = fakeHouseholdRepository.findByIdAndUserId(deletedHousehold.id(), userContext.actorId());
+    assertThat(stored.isPresent()).isTrue();
+    assertThat(stored.get().deletedAt()).isNotNull();
+    assertThat(stored.get().deletedAt()).isEqualTo(stored.get().updatedAt());
+    assertThat(stored.get().deletedAt()).isEqualTo(deletedHousehold.deletedAt());
   }
 }

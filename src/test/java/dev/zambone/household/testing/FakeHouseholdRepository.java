@@ -40,6 +40,21 @@ public class FakeHouseholdRepository implements HouseholdRepository {
       return false;
 
     }
+
+    table.put(household.id(), household);
+    return true;
+  }
+
+  @Override
+  public boolean delete(Household household, Instant version) {
+    Household existing = table.get(household.id());
+
+    if (existing == null) return false;
+
+    if (!existing.updatedAt().equals(version)) {
+      return false;
+    }
+
     table.put(household.id(), household);
     return true;
   }

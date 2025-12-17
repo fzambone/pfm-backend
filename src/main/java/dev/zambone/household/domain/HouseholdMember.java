@@ -8,6 +8,7 @@ public record HouseholdMember(
     UUID appUserId,
     Role role,
     Instant joinedAt,
+    Instant deletedAt,
     UUID invitedBy
 ) {
 }

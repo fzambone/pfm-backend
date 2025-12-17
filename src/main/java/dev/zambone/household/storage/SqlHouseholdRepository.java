@@ -29,8 +29,8 @@ public class SqlHouseholdRepository implements HouseholdRepository {
     var sql = """
         SELECT * FROM households h
         INNER JOIN household_members hm ON h.id = hm.household_id
-        WHERE h.id = ?
-          AND hm.app_user_id = ?
+        WHERE h.id = ? AND hm.app_user_id = ?
+          AND deleted_at IS NULL
         """;
 
     try (Connection connection = dataSource.getConnection();
@@ -57,8 +57,8 @@ public class SqlHouseholdRepository implements HouseholdRepository {
   public Household save(Household household) {
 
     var sql = """
-        INSERT INTO households (id, name, is_active, created_at, updated_at, created_by, updated_by)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO households (id, name, is_active, created_at, updated_at, deleted_at, created_by, updated_by)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
           RETURNING *
     """;
 
@@ -71,6 +71,7 @@ public class SqlHouseholdRepository implements HouseholdRepository {
       preparedStatement.setBoolean(i++, household.isActive());
       preparedStatement.setTimestamp(i++, Timestamp.from(household.createdAt()), UTC);
       preparedStatement.setTimestamp(i++,Timestamp.from(household.updatedAt()), UTC);
+      preparedStatement.setNull(i++, Types.TIMESTAMP);
       preparedStatement.setObject(i++, household.createdBy());
       preparedStatement.setObject(i++, household.updatedBy());
 
@@ -95,9 +96,8 @@ public class SqlHouseholdRepository implements HouseholdRepository {
         UPDATE households
         SET name = ?, updated_at = ?, updated_by = ?
         WHERE id = ? AND updated_at = ?
+          AND deleted_at IS NULL
         """;
-
-    System.out.println("household: " + Timestamp.from(household.updatedAt()) + " version: " + version);
 
     try (Connection connection = dataSource.getConnection();
     PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
@@ -117,6 +117,29 @@ public class SqlHouseholdRepository implements HouseholdRepository {
     }
   }
 
+  @Override
+  public boolean delete(Household household, Instant version) {
+    var sql = """
+       UPDATE households
+       SET deleted_at = ?
+       WHERE id = ? AND updated_at = ?
+       """;
+
+    try (Connection connection = dataSource.getConnection();
+    PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+      int i = 1;
+      preparedStatement.setTimestamp(i++, Timestamp.from(household.deletedAt()), UTC);
+      preparedStatement.setObject(i++, household.id());
+      preparedStatement.setTimestamp(i++, Timestamp.from(version), UTC);
+
+      return preparedStatement.executeUpdate() > 0;
+    } catch (SQLException e) {
+      logger.error("Error deleting Household: [id={}]", household.id());
+      throw new RuntimeException(e);
+    }
+  }
+
   private static class HouseholdMapper {
 
     public Household map(ResultSet resultSet) throws SQLException {
@@ -126,6 +149,7 @@ public class SqlHouseholdRepository implements HouseholdRepository {
           resultSet.getBoolean("is_active"),
           resultSet.getTimestamp("created_at").toInstant(),
           resultSet.getTimestamp("updated_at").toInstant(),
+          resultSet.getTimestamp("deleted_at").toInstant(),
           resultSet.getString("created_by") != null ? UUID.fromString(resultSet.getString("created_by")) : null,
           resultSet.getString("updated_by") != null ? UUID.fromString(resultSet.getString("updated_by")) : null
       );

@@ -9,7 +9,6 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ConcurrentModificationException;
 import java.util.UUID;
@@ -76,7 +75,7 @@ public class HouseholdGrpcService extends HouseholdServiceGrpc.HouseholdServiceI
         throw new IllegalArgumentException("No user context found!");
       }
 
-      var domainHousehold = householdLogic.getHousehold(context, UUID.fromString(request.getHouseholdId()));
+      var domainHousehold = householdLogic.get(context, UUID.fromString(request.getHouseholdId()));
       var protoHousehold = convertToProto(domainHousehold);
 
       GetHouseholdResponse response = GetHouseholdResponse.newBuilder()
@@ -116,7 +115,7 @@ public class HouseholdGrpcService extends HouseholdServiceGrpc.HouseholdServiceI
           request.getVersion().getNanos()
       );
 
-      var updatedHousehold = householdLogic.updateHousehold(
+      var updatedHousehold = householdLogic.update(
           context,
           id,
           request.getName(),

@@ -29,6 +29,7 @@ public class SqlAppUserRepository implements AppUserRepository {
     var sql = """
         SELECT * FROM app_users
         WHERE email = ?
+            AND deleted_at IS NULL
         """;
 
     try (Connection connection = dataSource.getConnection();

@@ -42,6 +42,7 @@ public class SqlHouseholdMemberRepositoryTest {
         memberUser.id(),
         Role.MEMBER,
         Instant.now().truncatedTo(ChronoUnit.MICROS),
+        null,
         adminUser.id()
     );
 

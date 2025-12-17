@@ -13,7 +13,7 @@ public class HouseHoldMemberLogic {
   }
 
   public HouseholdMember createHouseholdMember(UUID householdId, UUID appUserId, Role role, UUID invitedBy) {
-    var householdMember = new HouseholdMember(householdId, appUserId, role, Instant.now(), invitedBy);
+    var householdMember = new HouseholdMember(householdId, appUserId, role, Instant.now(), null, invitedBy);
     return householdMemberRepository.save(householdMember);
   }
 
