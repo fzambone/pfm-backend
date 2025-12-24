@@ -1,6 +1,6 @@
 package dev.zambone.common.auth;
 
-import dev.zambone.appusers.domain.UserContext;
+import dev.zambone.appuser.domain.UserContext;
 import io.grpc.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

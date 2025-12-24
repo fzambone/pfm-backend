@@ -1,6 +1,6 @@
 package dev.zambone.household.testing;
 
-import dev.zambone.appusers.domain.AppUser;
+import dev.zambone.appuser.domain.AppUser;
 import dev.zambone.household.domain.*;
 
 import java.time.Instant;
@@ -9,9 +9,18 @@ import java.util.UUID;
 
 public class HouseholdFactory {
 
-  private HouseholdFactory() {}
+  private final HouseholdRepository householdRepository;
+  private final HouseholdMemberRepository householdMemberRepository;
 
-  public static Household createAndSaveHousehold(HouseholdRepository householdRepository, HouseholdMemberRepository householdMemberRepository, String name, AppUser user) {
+  public HouseholdFactory(HouseholdRepository householdRepository, HouseholdMemberRepository householdMemberRepository) {
+    this.householdRepository = householdRepository;
+    this.householdMemberRepository = householdMemberRepository;
+  }
+
+  public Household createAndPersistHousehold(
+      String name,
+      AppUser user
+  ) {
 
     var household = new Household(
         UUID.randomUUID(),
@@ -37,5 +46,36 @@ public class HouseholdFactory {
     householdMemberRepository.save(householdMember);
 
     return savedHousehold;
+  }
+
+  public Household createdDeletedHousehold(
+      String name,
+      AppUser user) {
+
+    var household = new Household(
+        UUID.randomUUID(),
+        name,
+        true,
+        Instant.now().truncatedTo(ChronoUnit.MICROS),
+        Instant.now().truncatedTo(ChronoUnit.MICROS),
+        Instant.now().truncatedTo(ChronoUnit.MICROS),
+        user.id(),
+        user.id()
+    );
+
+    var householdMember = new HouseholdMember(
+        household.id(),
+        user.id(),
+        Role.ADMIN,
+        Instant.now().truncatedTo(ChronoUnit.MICROS),
+        null,
+        user.id()
+    );
+
+    var deletedHousehold = householdRepository.save(household);
+    householdMemberRepository.save(householdMember);
+
+    return deletedHousehold;
+
   }
 }

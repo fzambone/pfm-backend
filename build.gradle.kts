@@ -37,7 +37,7 @@ dependencies {
   testImplementation("com.google.truth:truth:1.1.5")
 
   // TESTCONTAINERS
-  testImplementation(platform("org.testcontainers:testcontainers-bom:1.19.7"))
+  testImplementation(platform("org.testcontainers:testcontainers-bom:1.21.4"))
   testImplementation("org.testcontainers:testcontainers")
   testImplementation("org.testcontainers:junit-jupiter")
   testImplementation("org.testcontainers:postgresql")

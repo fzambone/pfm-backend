@@ -1,6 +1,6 @@
 package dev.zambone.common.auth;
 
-import dev.zambone.appusers.domain.UserContext;
+import dev.zambone.appuser.domain.UserContext;
 import io.grpc.Context;
 import io.grpc.Metadata;
 

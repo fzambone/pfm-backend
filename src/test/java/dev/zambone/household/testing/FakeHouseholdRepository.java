@@ -17,8 +17,7 @@ public class FakeHouseholdRepository implements HouseholdRepository {
   @Override
   public Optional<Household> findByIdAndUserId(UUID householdId, UUID userId) {
     var household = table.get(householdId);
-
-    if (household != null && household.createdBy().equals(userId)) {
+    if (household != null && household.createdBy().equals(userId) && !household.isDeleted()) {
       return Optional.of(household);
     }
     return Optional.empty();
@@ -32,11 +31,11 @@ public class FakeHouseholdRepository implements HouseholdRepository {
 
   @Override
   public boolean update(Household household, Instant version) {
-    Household existing = table.get(household.id());
+    var existingHousehold = table.get(household.id());
 
-    if (existing == null) return false;
+    if (existingHousehold == null) return false;
 
-    if (!existing.updatedAt().equals(version)) {
+    if (!existingHousehold.updatedAt().equals(version)) {
       return false;
 
     }

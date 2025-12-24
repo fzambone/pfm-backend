@@ -1,4 +1,4 @@
-package dev.zambone.appusers.domain;
+package dev.zambone.appuser.domain;
 
 public interface PasswordHasher {
 

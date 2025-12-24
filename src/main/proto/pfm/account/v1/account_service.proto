@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package pfm.account.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/type/money.proto";
+
+option java_multiple_files = true;
+option java_package = "dev.zambone.proto.account.v1";
+option java_outer_classname = "AccountServiceProto";
+
+service AccountService {
+  rpc CreateAccount (CreateAccountRequest) returns (CreateAccountResponse);
+}
+
+message CreateAccountRequest {
+  string household_id = 1;
+  string name = 2;
+  AccountType type = 3;
+  string currency_code = 4;
+  google.type.Money initial_value = 5;
+  optional CreditCardSettings credit_card_settings = 6;
+}
+
+message CreditCardSettings {
+  int32 closing_day = 1;
+  int32 due_day = 2;
+  google.type.Money limit_amount = 3;
+}
+
+enum AccountType {
+  ACCOUNT_TYPE_UNSPECIFIED = 0;
+  ACCOUNT_TYPE_CHECKING = 1;
+  ACCOUNT_TYPE_CREDIT_CARD = 2;
+  ACCOUNT_TYPE_INVESTMENT = 3;
+}
+
+message CreateAccountResponse {
+  Account account = 1;
+}
+
+message Account {
+  string id = 1;
+  string household_id = 2;
+  string name = 3;
+  AccountType type = 4;
+  string currency_code = 5;
+  google.type.Money current_balance = 6;
+}

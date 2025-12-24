@@ -1,7 +1,7 @@
 package dev.zambone;
 
-import dev.zambone.appusers.domain.AppUser;
-import dev.zambone.appusers.storage.SqlAppUserRepository;
+import dev.zambone.appuser.domain.AppUser;
+import dev.zambone.appuser.storage.SqlAppUserRepository;
 import dev.zambone.common.auth.AuthInterceptor;
 import dev.zambone.household.domain.HouseholdLogic;
 import dev.zambone.household.service.HouseholdGrpcService;
@@ -109,6 +109,7 @@ public class Main {
           "Dev Administrator",
           Instant.now(),
           Instant.now(),
+          null,
           DEV_USER_ID,
           DEV_USER_ID
       );

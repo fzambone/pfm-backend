@@ -1,11 +1,13 @@
 package dev.zambone.household.domain;
 
-import dev.zambone.appusers.domain.UserContext;
-import dev.zambone.household.testing.FakeHouseholdMemberRepository;
-import dev.zambone.household.testing.FakeHouseholdRepository;
+import dev.zambone.account.exceptions.ResourceNotFoundException;
+import dev.zambone.appuser.domain.UserContext;
+import dev.zambone.appuser.testing.AppUserTestRig;
+import dev.zambone.household.testing.HouseholdTestRig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.ConcurrentModificationException;
 import java.util.UUID;
 
@@ -15,22 +17,19 @@ import static org.junit.Assert.assertThrows;
 public class HouseholdLogicTest {
 
 
-  private HouseholdLogic householdLogic;
-  private FakeHouseholdRepository fakeHouseholdRepository;
-  private FakeHouseholdMemberRepository fakeHouseholdMemberRepository;
+  private HouseholdTestRig householdTestRig;
+  private AppUserTestRig appUserTestRig;
 
   @BeforeEach
   void setUp() {
-    fakeHouseholdRepository = new FakeHouseholdRepository();
-    fakeHouseholdMemberRepository = new FakeHouseholdMemberRepository();
-
-    householdLogic = new HouseholdLogic(fakeHouseholdRepository, fakeHouseholdMemberRepository);
+    householdTestRig = new HouseholdTestRig();
+    appUserTestRig = new AppUserTestRig();
   }
 
   @Test
   void shouldCreate_successfullyWithAdmin() {
     var userId = UUID.randomUUID();
-    var createdHousehold = householdLogic.create(
+    var createdHousehold = householdTestRig.logic().create(
         new UserContext(userId),
         "Test household"
     );
@@ -38,7 +37,7 @@ public class HouseholdLogicTest {
     assertThat(createdHousehold).isNotNull();
     assertThat(createdHousehold.id()).isNotNull();
 
-    var adminMember = fakeHouseholdMemberRepository.findByMemberId(userId);
+    var adminMember = householdTestRig.memberRepository().findByMemberId(userId);
 
     assertThat(createdHousehold.name()).isEqualTo("Test household");
     assertThat(adminMember.isPresent()).isTrue();
@@ -51,12 +50,12 @@ public class HouseholdLogicTest {
     var userId = UUID.randomUUID();
     var userContext = new UserContext(userId);
 
-    var createdHousehold = householdLogic.create(
+    var createdHousehold = householdTestRig.logic().create(
         userContext,
         "Test household"
     );
 
-    var fetchedHousehold = householdLogic.get(userContext, createdHousehold.id());
+    var fetchedHousehold = householdTestRig.logic().get(userContext, createdHousehold.id());
 
     assertThat(fetchedHousehold).isNotNull();
     assertThat(fetchedHousehold.name()).isEqualTo("Test household");
@@ -65,29 +64,41 @@ public class HouseholdLogicTest {
   }
 
   @Test
-  void shouldThrowException_whenGettingHousehold_ifUserIsNotMember() {
+  void shouldThrow_whenGetting_deletedHousehold() {
+    var user = appUserTestRig.createPersistedUser("test@zambone.dev");
+    var deletedHousehold = householdTestRig
+        .createDeletedHousehold("Deleted Household", user)
+        .withDeletedAt(Instant.now());
+
+    assertThrows(ResourceNotFoundException.class, () -> {
+      householdTestRig.logic().get(new UserContext(user.id()), deletedHousehold.id());
+    });
+  }
+
+  @Test
+  void shouldThrow_whenGettingHousehold_ifUserIsNotMember() {
     var ownerId = UUID.randomUUID();
     var intruderId = UUID.randomUUID();
 
-    var createdHousehold = householdLogic.create(
+    var createdHousehold = householdTestRig.logic().create(
         new UserContext(ownerId),
         "Secret household"
     );
 
-    assertThrows(IllegalArgumentException.class, () -> {
-      householdLogic.get(new UserContext(intruderId), createdHousehold.id());
+    assertThrows(ResourceNotFoundException.class, () -> {
+      householdTestRig.logic().get(new UserContext(intruderId), createdHousehold.id());
     });
   }
 
   @Test
   void shouldUpdate_successfully_whenVersionMatches() {
     var userContext = new UserContext(UUID.randomUUID());
-    var createdHousehold = householdLogic.create(
+    var createdHousehold = householdTestRig.logic().create(
         userContext,
         "Update household"
     );
     var newName = "Updated Palace";
-    var updatedHousehold = householdLogic.update(
+    var updatedHousehold = householdTestRig.logic().update(
         userContext,
         createdHousehold.id(),
         newName,
@@ -96,22 +107,22 @@ public class HouseholdLogicTest {
 
     assertThat(updatedHousehold).isNotNull();
 
-    var stored = fakeHouseholdRepository.findByIdAndUserId(createdHousehold.id(), userContext.actorId());
-    assertThat(stored.isPresent()).isTrue();
-    assertThat(stored.get().name()).isEqualTo(newName);
+    var storedHousehold = householdTestRig.repository().findByIdAndUserId(createdHousehold.id(), userContext.actorId());
+    assertThat(storedHousehold.isPresent()).isTrue();
+    assertThat(storedHousehold.get().name()).isEqualTo(newName);
   }
 
   @Test
-  void shouldThrowConcurrentModificationException_whenVersionMismatch() {
+  void shouldThrow_whenUpdating_withStaleVersion() {
     var userContext = new UserContext(UUID.randomUUID());
-    var createdHousehold = householdLogic.create(
+    var createdHousehold = householdTestRig.logic().create(
         userContext,
         "Update household"
     );
     var staleVersion = createdHousehold.updatedAt().minusSeconds(10);
 
     assertThrows(ConcurrentModificationException.class, () -> {
-      householdLogic.update(
+      householdTestRig.logic().update(
           userContext,
           createdHousehold.id(),
           "Hacker name",
@@ -123,18 +134,18 @@ public class HouseholdLogicTest {
   @Test
   void shouldDelete_successfully_whenVersionMatches() {
     var userContext = new UserContext(UUID.randomUUID());
-    var createdHousehold = householdLogic.create(
+    var createdHousehold = householdTestRig.logic().create(
         userContext,
         "Delete household"
     );
-    var deletedHousehold = householdLogic.delete(
+    var deletedHousehold = householdTestRig.logic().delete(
         userContext,
         createdHousehold.id(),
         createdHousehold.updatedAt());
 
     assertThat(deletedHousehold).isNotNull();
 
-    var stored = fakeHouseholdRepository.findByIdAndUserId(deletedHousehold.id(), userContext.actorId());
+    var stored = householdTestRig.repository().findByIdAndUserId(deletedHousehold.id(), userContext.actorId());
     assertThat(stored.isPresent()).isTrue();
     assertThat(stored.get().deletedAt()).isNotNull();
     assertThat(stored.get().deletedAt()).isEqualTo(stored.get().updatedAt());

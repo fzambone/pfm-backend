@@ -30,7 +30,7 @@ public class SqlHouseholdRepository implements HouseholdRepository {
         SELECT * FROM households h
         INNER JOIN household_members hm ON h.id = hm.household_id
         WHERE h.id = ? AND hm.app_user_id = ?
-          AND deleted_at IS NULL
+          AND hm.deleted_at IS NULL
         """;
 
     try (Connection connection = dataSource.getConnection();
@@ -91,7 +91,7 @@ public class SqlHouseholdRepository implements HouseholdRepository {
   }
 
   @Override
-  public boolean update(Household household, Instant version) {
+  public boolean update(Household updatedHousehold, Instant version) {
     var sql = """
         UPDATE households
         SET name = ?, updated_at = ?, updated_by = ?
@@ -103,16 +103,16 @@ public class SqlHouseholdRepository implements HouseholdRepository {
     PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
       int i = 1;
-      preparedStatement.setString(i++, household.name());
+      preparedStatement.setString(i++, updatedHousehold.name());
       preparedStatement.setTimestamp(i++, Timestamp.from(Instant.now()), UTC);
-      preparedStatement.setObject(i++, household.updatedBy());
-      preparedStatement.setObject(i++, household.id());
+      preparedStatement.setObject(i++, updatedHousehold.updatedBy());
+      preparedStatement.setObject(i++, updatedHousehold.id());
       preparedStatement.setTimestamp(i++, Timestamp.from(version), UTC);
 
       return preparedStatement.executeUpdate() > 0;
 
     } catch (SQLException e) {
-      logger.error("Error updating Household: [id={}]", household.id());
+      logger.error("Error updating Household: [id={}]", updatedHousehold.id());
       throw new RuntimeException(e);
     }
   }
@@ -149,7 +149,7 @@ public class SqlHouseholdRepository implements HouseholdRepository {
           resultSet.getBoolean("is_active"),
           resultSet.getTimestamp("created_at").toInstant(),
           resultSet.getTimestamp("updated_at").toInstant(),
-          resultSet.getTimestamp("deleted_at").toInstant(),
+          resultSet.getTimestamp("deleted_at") != null ? resultSet.getTimestamp("deleted_at").toInstant() : null,
           resultSet.getString("created_by") != null ? UUID.fromString(resultSet.getString("created_by")) : null,
           resultSet.getString("updated_by") != null ? UUID.fromString(resultSet.getString("updated_by")) : null
       );

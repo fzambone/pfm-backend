@@ -1,7 +1,7 @@
 package dev.zambone.household.storage;
 
-import dev.zambone.appusers.storage.SqlAppUserRepository;
-import dev.zambone.appusers.testing.AppUserFactory;
+import dev.zambone.appuser.storage.SqlAppUserRepository;
+import dev.zambone.appuser.testing.AppUserFactory;
 import dev.zambone.household.domain.Role;
 import dev.zambone.household.testing.HouseholdFactory;
 import dev.zambone.testing.TestDatabase;
@@ -18,23 +18,24 @@ public class SqlHouseholdRepositoryTest {
 
   private SqlHouseholdRepository householdRepository;
   private SqlHouseholdMemberRepository householdMemberRepository;
-  private SqlAppUserRepository appUserRepository;
+  private AppUserFactory appUserFactory;
+  private HouseholdFactory householdFactory;
 
   @BeforeEach
   void setUp() {
     DataSource dataSource = TestDatabase.getDataSource();
-
     TestDatabase.reset();
-
+    SqlAppUserRepository appUserRepository = new SqlAppUserRepository(dataSource);
     householdRepository = new SqlHouseholdRepository(dataSource);
     householdMemberRepository = new SqlHouseholdMemberRepository(dataSource);
-    appUserRepository = new SqlAppUserRepository(dataSource);
+    appUserFactory = new AppUserFactory(appUserRepository);
+    householdFactory = new HouseholdFactory(householdRepository, householdMemberRepository);
   }
 
   @Test
   void shouldSaveAndFindHousehold_andVerifyAdminRole() {
-    var user = AppUserFactory.createAndPersistUser(appUserRepository, "save@zambone.dev");
-    var household = HouseholdFactory.createAndSaveHousehold(householdRepository, householdMemberRepository, "Test Household", user);
+    var user = appUserFactory.createAndPersistUser("save@zambone.dev");
+    var household = householdFactory.createAndPersistHousehold("Test Household", user);
 
     var foundHousehold = householdRepository.findByIdAndUserId(household.id(), user.id());
     assertThat(foundHousehold.isPresent()).isTrue();
@@ -48,8 +49,8 @@ public class SqlHouseholdRepositoryTest {
 
   @Test
   void shouldThrowIllegalArgumentException_whenUserIsNotAMember() {
-    var user = AppUserFactory.createAndPersistUser(appUserRepository, "illegal@zambone.dev");
-    var household = HouseholdFactory.createAndSaveHousehold(householdRepository, householdMemberRepository, "Illegal household", user);
+    var user = appUserFactory.createAndPersistUser("illegal@zambone.dev");
+    var household = householdFactory.createAndPersistHousehold("Illegal household", user);
 
     assertThrows(IllegalArgumentException.class, () -> {
       householdRepository.findByIdAndUserId(household.id(), UUID.randomUUID());
@@ -58,8 +59,8 @@ public class SqlHouseholdRepositoryTest {
 
   @Test
   void shouldUpdateHousehold_successfully_whenVersionMatches() {
-    var user = AppUserFactory.createAndPersistUser(appUserRepository, "update@zambone.dev");
-    var household = HouseholdFactory.createAndSaveHousehold(householdRepository, householdMemberRepository, "Update household", user);
+    var user = appUserFactory.createAndPersistUser("update@zambone.dev");
+    var household = householdFactory.createAndPersistHousehold("Update household", user);
     var updatedHousehold = householdRepository.update(household, household.updatedAt());
     assertThat(updatedHousehold).isTrue();
 

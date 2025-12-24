@@ -1,6 +1,7 @@
 package dev.zambone.household.domain;
 
-import dev.zambone.appusers.domain.UserContext;
+import dev.zambone.account.exceptions.ResourceNotFoundException;
+import dev.zambone.appuser.domain.UserContext;
 
 import java.time.Instant;
 import java.util.ConcurrentModificationException;
@@ -16,54 +17,53 @@ public class HouseholdLogic {
     this.householdMemberRepository = householdMemberRepository;
   }
 
-  public Household create(UserContext userContext, String name) {
-    var household = new Household(UUID.randomUUID(), name, true, Instant.now(), Instant.now(), null, userContext.actorId(), userContext.actorId());
-    var householdMember = new HouseholdMember(household.id(), userContext.actorId(), Role.ADMIN, Instant.now(), null, userContext.actorId());
+  public Household create(UserContext context, String name) {
+    var household = new Household(UUID.randomUUID(), name, true, Instant.now(), Instant.now(), null, context.actorId(), context.actorId());
+    var householdMember = new HouseholdMember(household.id(), context.actorId(), Role.ADMIN, Instant.now(), null, context.actorId());
 
     var createdHousehold = householdRepository.save(household);
     householdMemberRepository.save(householdMember);
     return createdHousehold;
   }
 
-  public Household get(UserContext userContext, UUID householdId) {
-    return householdRepository.findByIdAndUserId(householdId, userContext.actorId())
-        .orElseThrow(() -> new IllegalArgumentException("Household not found or access denied"));
+  public Household get(UserContext context, UUID householdId) {
+    return householdRepository.findByIdAndUserId(householdId, context.actorId())
+        .orElseThrow(() -> new ResourceNotFoundException("Household not found or access denied"));
   }
 
-  public Household update(UserContext userContext, UUID householdId, String newName, Instant version) {
-    requireAdmin(householdId, userContext.actorId());
-    Household existing = householdRepository.findByIdAndUserId(householdId, userContext.actorId())
-        .orElseThrow(() -> new IllegalArgumentException("Household not found"));
+  public Household update(UserContext context, UUID householdId, String newName, Instant version) {
+    requireAdmin(householdId, context.actorId());
+    var existingHousehold = householdRepository.findByIdAndUserId(householdId, context.actorId())
+        .orElseThrow(() -> new ResourceNotFoundException("Household not found"));
 
-    Household updated = existing
+    var updatedHousehold = existingHousehold
         .withName(newName)
-        .withUpdatedBy(userContext.actorId())
+        .withUpdatedBy(context.actorId())
         .withUpdatedAt(Instant.now());
 
-    boolean success = householdRepository.update(updated, version);
+    boolean success = householdRepository.update(updatedHousehold, version);
 
     if (!success) {
       throw new ConcurrentModificationException("Data was modified by another user");
     }
 
-    return updated;
+    return updatedHousehold;
   }
 
-  public Household delete(UserContext userContext, UUID householdId, Instant version) {
-    requireAdmin(householdId, userContext.actorId());
-    Household existing = householdRepository.findByIdAndUserId(householdId, userContext.actorId())
+  public Household delete(UserContext context, UUID householdId, Instant version) {
+    requireAdmin(householdId, context.actorId());
+    var existingHousehold = householdRepository.findByIdAndUserId(householdId, context.actorId())
         .orElseThrow(() -> new IllegalArgumentException("Household not found"));
 
-    Household deleted = existing
+    Household deletedHousehold = existingHousehold
         .withDeletedAt(Instant.now())
         .withUpdatedAt(Instant.now());
 
-    boolean success = householdRepository.delete(deleted, version);
+    boolean success = householdRepository.delete(deletedHousehold, version);
 
-    if (!success) {
-      throw new ConcurrentModificationException("Data was modified by another user");
-    }
-    return deleted;
+    if (!success) throw new ConcurrentModificationException("Data was modified by another user");
+
+    return deletedHousehold;
   }
 
   private void requireAdmin(UUID householdId, UUID userId) {

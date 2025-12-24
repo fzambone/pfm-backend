@@ -1,13 +1,15 @@
-package dev.zambone.appusers.storage;
+package dev.zambone.appuser.storage;
 
-import dev.zambone.appusers.domain.AppUser;
-import dev.zambone.appusers.domain.AppUserRepository;
-import dev.zambone.household.storage.SqlHouseholdRepository;
+import dev.zambone.appuser.domain.AppUser;
+import dev.zambone.appuser.domain.AppUserRepository;
+import dev.zambone.appuser.domain.UserContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
+import javax.swing.text.html.Option;
 import java.sql.*;
+import java.time.Instant;
 import java.util.Calendar;
 import java.util.Optional;
 import java.util.TimeZone;
@@ -39,15 +41,44 @@ public class SqlAppUserRepository implements AppUserRepository {
 
       try (ResultSet resultSet = preparedStatement.executeQuery()) {
         if (resultSet.next()) {
-          var foundAppUser = new AppUserMapper().map(resultSet);
-          logger.debug("Fetched app user by Email: [id={}]", foundAppUser.id());
-          return Optional.of(foundAppUser);
+          var foundUser = new AppUserMapper().map(resultSet);
+          logger.debug("Fetched app user by Email: [id={}]", foundUser.id());
+          return Optional.of(foundUser);
         }
       }
       return  Optional.empty();
 
     } catch (SQLException e) {
-      logger.error("Error trying to fetch App User by Id", e);
+      logger.error("Error trying to fetch App User by Email", e);
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public Optional<AppUser> findById(UUID id) {
+
+    var sql = """
+        SELECT * FROM app_user
+        WHERE id = ?
+          AND deleted_at IS NULL
+        """;
+
+    try (Connection connection = dataSource.getConnection();
+      PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+      preparedStatement.setObject(1, id);
+
+      try (ResultSet resultSet = preparedStatement.executeQuery()) {
+        if (resultSet.next()) {
+          var foundUser = new AppUserMapper().map(resultSet);
+          logger.debug("Fetched app user by Id: [id={}]", foundUser.id());
+          return Optional.of(foundUser);
+        }
+      }
+      return Optional.empty();
+
+    } catch (SQLException e) {
+      logger.error("Error trying to fetch App User by ID", e);
       throw new RuntimeException(e);
     }
   }
@@ -56,8 +87,8 @@ public class SqlAppUserRepository implements AppUserRepository {
   public AppUser save(AppUser appUser) {
 
     var sql = """
-        INSERT INTO app_users (id, email, password_hash, full_name, created_at, updated_at, created_by, updated_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO app_users (id, email, password_hash, full_name, created_at, updated_at, deleted_at, created_by, updated_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING *
         """;
 
@@ -71,6 +102,7 @@ public class SqlAppUserRepository implements AppUserRepository {
       preparedStatement.setString(i++, appUser.fullName());
       preparedStatement.setTimestamp(i++, Timestamp.from(appUser.createdAt()), UTC);
       preparedStatement.setTimestamp(i++, Timestamp.from(appUser.updatedAt()), UTC);
+      preparedStatement.setNull(i++, Types.TIMESTAMP);
       preparedStatement.setObject(i++, appUser.createdBy());
       preparedStatement.setObject(i++, appUser.updatedBy());
 
@@ -89,6 +121,34 @@ public class SqlAppUserRepository implements AppUserRepository {
     }
   }
 
+  @Override
+  public boolean update(AppUser updatedUser, Instant version) {
+
+    var sql = """
+        UPDATE app_users
+        SET full_name = ?, updated_at = ?, updated_by = ?
+        WHERE id = ? AND updated_at = ?
+          AND deleted_at IS NULL
+        """;
+
+    try (Connection connection = dataSource.getConnection();
+    PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+      int i = 1;
+      preparedStatement.setString(i++, updatedUser.fullName());
+      preparedStatement.setTimestamp(i++, Timestamp.from(updatedUser.updatedAt()));
+      preparedStatement.setObject(i++, updatedUser.updatedBy());
+      preparedStatement.setObject(i++, updatedUser.id());
+      preparedStatement.setTimestamp(i++, Timestamp.from(updatedUser.updatedAt()));
+
+      return preparedStatement.executeUpdate() > 0;
+
+    } catch (SQLException e) {
+      logger.error("Error updating App User: [id={}]", updatedUser.id());
+      throw new RuntimeException(e);
+    }
+  }
+
   private static class AppUserMapper {
 
     public AppUser map(ResultSet resultSet) throws SQLException {
@@ -99,6 +159,7 @@ public class SqlAppUserRepository implements AppUserRepository {
           resultSet.getString("full_name"),
           resultSet.getTimestamp("created_at").toInstant(),
           resultSet.getTimestamp("updated_at").toInstant(),
+          resultSet.getTimestamp("deleted_at") != null ? resultSet.getTimestamp("deleted_at").toInstant() : null,
           UUID.fromString(resultSet.getString("created_by")),
           UUID.fromString(resultSet.getString("updated_by"))
       );

@@ -1,6 +1,6 @@
 package dev.zambone.household.service;
 
-import dev.zambone.appusers.domain.UserContext;
+import dev.zambone.appuser.domain.UserContext;
 import dev.zambone.common.auth.AuthConstants;
 import dev.zambone.household.domain.HouseholdLogic;
 import dev.zambone.proto.household.v1.*;

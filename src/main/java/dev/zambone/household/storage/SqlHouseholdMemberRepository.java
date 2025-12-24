@@ -33,6 +33,7 @@ public class SqlHouseholdMemberRepository implements HouseholdMemberRepository {
                     deleted_at = NULL,
                     role = EXCLUDED.role,
                     joined_at = EXCLUDED.joined_at
+        RETURNING *
         """;
 
     try (Connection connection = dataSource.getConnection();
