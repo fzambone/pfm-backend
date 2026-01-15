@@ -150,8 +150,8 @@ public class SqlHouseholdRepository implements HouseholdRepository {
           resultSet.getTimestamp("created_at").toInstant(),
           resultSet.getTimestamp("updated_at").toInstant(),
           resultSet.getTimestamp("deleted_at") != null ? resultSet.getTimestamp("deleted_at").toInstant() : null,
-          resultSet.getString("created_by") != null ? UUID.fromString(resultSet.getString("created_by")) : null,
-          resultSet.getString("updated_by") != null ? UUID.fromString(resultSet.getString("updated_by")) : null
+          UUID.fromString(resultSet.getString("created_by")),
+          UUID.fromString(resultSet.getString("updated_by"))
       );
     }
   }

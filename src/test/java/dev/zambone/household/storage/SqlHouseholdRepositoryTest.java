@@ -2,6 +2,8 @@ package dev.zambone.household.storage;
 
 import dev.zambone.appuser.storage.SqlAppUserRepository;
 import dev.zambone.appuser.testing.AppUserFactory;
+import dev.zambone.household.domain.Household;
+import dev.zambone.household.domain.HouseholdMember;
 import dev.zambone.household.domain.Role;
 import dev.zambone.household.testing.HouseholdFactory;
 import dev.zambone.testing.TestDatabase;
@@ -9,6 +11,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -35,7 +39,30 @@ public class SqlHouseholdRepositoryTest {
   @Test
   void shouldSaveAndFindHousehold_andVerifyAdminRole() {
     var user = appUserFactory.createAndPersistUser("save@zambone.dev");
-    var household = householdFactory.createAndPersistHousehold("Test Household", user);
+    var householdId = UUID.randomUUID();
+
+    var household = new Household(
+        householdId,
+        "Test Household",
+        true,
+        Instant.now().truncatedTo(ChronoUnit.MICROS),
+        Instant.now().truncatedTo(ChronoUnit.MICROS),
+        null,
+        user.id(),
+        user.id()
+    );
+
+    var householdMember = new HouseholdMember(
+        householdId,
+        user.id(),
+        Role.ADMIN,
+        Instant.now(),
+        null,
+        user.id()
+    );
+
+    householdRepository.save(household);
+    householdMemberRepository.save(householdMember);
 
     var foundHousehold = householdRepository.findByIdAndUserId(household.id(), user.id());
     assertThat(foundHousehold.isPresent()).isTrue();
