@@ -4,6 +4,8 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 .kotlin
+CLAUDE.md
+github-milestones-plan.md
 
 ### IntelliJ IDEA ###
 .idea/modules.xml

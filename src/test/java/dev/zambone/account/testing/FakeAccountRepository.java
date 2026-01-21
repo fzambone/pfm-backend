@@ -2,7 +2,6 @@ package dev.zambone.account.testing;
 
 import dev.zambone.account.domain.Account;
 import dev.zambone.account.domain.AccountRepository;
-
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Optional;
@@ -19,15 +18,26 @@ public class FakeAccountRepository implements AccountRepository {
   }
 
   @Override
-  public Optional<Account> findById(UUID id) {
-    return Optional.of(table.get(id));
+  public Optional<Account> findById(UUID accountId, UUID userId) {
+    return table.get(accountId) == null ? Optional.empty() : Optional.of(table.get(accountId));
+  }
+
+  @Override
+  public Optional<Account> findByName(UUID householdId, String name) {
+    return table.values().stream()
+        .filter(account -> account.householdId().equals(householdId))
+        .filter(account -> account.name().equalsIgnoreCase(name))
+        .filter(account -> account.deletedAt() == null)
+        .findAny();
   }
 
   @Override
   public boolean update(Account account, Instant version) {
     var existingAccount = table.get(account.id());
 
-    if (existingAccount == null) return false;
+    if (existingAccount == null) {
+      return false;
+    }
 
     if (!existingAccount.updatedAt().equals(version)) {
       return false;
@@ -41,7 +51,9 @@ public class FakeAccountRepository implements AccountRepository {
   public boolean delete(Account account, Instant version) {
     var existingAccount = table.get(account.id());
 
-    if (existingAccount == null) return false;
+    if (existingAccount == null) {
+      return false;
+    }
 
     if (!existingAccount.updatedAt().equals(version)) {
       return false;

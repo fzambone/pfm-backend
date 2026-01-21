@@ -1,73 +1,76 @@
 plugins {
-  id("java")
-  id("com.google.protobuf") version "0.9.4"
+    id("java")
+    id("com.google.protobuf") version "0.9.4"
+    id("com.diffplug.spotless") version "6.25.0"
 }
 
 group = "dev.zambone"
 version = "1.0-SNAPSHOT"
 
 repositories {
-  mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
-  // BCrypt for passwords
-  implementation("org.mindrot:jbcrypt:0.4")
+    implementation("org.mindrot:jbcrypt:0.4")
+    implementation("org.postgresql:postgresql:42.7.2")
+    implementation("org.flywaydb:flyway-core:10.8.1")
+    implementation("ch.qos.logback:logback-classic:1.5.3")
+    implementation("net.logstash.logback:logstash-logback-encoder:7.4")
+    implementation("io.grpc:grpc-netty-shaded:1.62.2")
+    implementation("io.grpc:grpc-protobuf:1.62.2")
+    implementation("io.grpc:grpc-stub:1.62.2")
+    
+    testImplementation(platform("org.junit:junit-bom:5.10.0"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation("com.google.truth:truth:1.1.5")
+    testImplementation(platform("org.testcontainers:testcontainers-bom:1.21.4"))
+    testImplementation("org.testcontainers:testcontainers")
+    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.testcontainers:postgresql")
 
-  // DATABASE (Postgres)
-  implementation("org.postgresql:postgresql:42.7.2")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql:10.8.1")
 
-  // MIGRATIONS (Flyway)
-  implementation("org.flywaydb:flyway-core:10.8.1")
-  runtimeOnly("org.flywaydb:flyway-database-postgresql:10.8.1")
-
-  // LOGGING (Production Grade)
-  implementation("ch.qos.logback:logback-classic:1.5.3")
-  implementation("net.logstash.logback:logstash-logback-encoder:7.4")
-
-  // gRPC & Protobuf (The Communication Layer)
-  implementation("io.grpc:grpc-netty-shaded:1.62.2")
-  implementation("io.grpc:grpc-protobuf:1.62.2")
-  implementation("io.grpc:grpc-stub:1.62.2")
-  compileOnly("org.apache.tomcat:annotations-api:6.0.53")
-
-  // TESTING
-  testImplementation(platform("org.junit:junit-bom:5.10.0"))
-  testImplementation("org.junit.jupiter:junit-jupiter")
-  testImplementation("com.google.truth:truth:1.1.5")
-
-  // TESTCONTAINERS
-  testImplementation(platform("org.testcontainers:testcontainers-bom:1.21.4"))
-  testImplementation("org.testcontainers:testcontainers")
-  testImplementation("org.testcontainers:junit-jupiter")
-  testImplementation("org.testcontainers:postgresql")
+    compileOnly("org.apache.tomcat:annotations-api:6.0.53")
 }
 
 java {
-  toolchain {
-    languageVersion.set(JavaLanguageVersion.of(21))
-  }
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
 }
 
 tasks.test {
-  useJUnitPlatform()
+    useJUnitPlatform()
 }
 
 // CONFIGURATION FOR PROTOBUF PLUGIN
 protobuf {
-  protoc {
-    artifact = "com.google.protobuf:protoc:3.25.3"
-  }
-  plugins {
-    create("grpc") {
-      artifact = "io.grpc:protoc-gen-grpc-java:1.62.2"
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.25.3"
     }
-  }
-  generateProtoTasks {
-    all().forEach {
-      it.plugins {
-        create("grpc")
-      }
+    plugins {
+        create("grpc") {
+            artifact = "io.grpc:protoc-gen-grpc-java:1.62.2"
+        }
     }
-  }
+    generateProtoTasks {
+        all().forEach {
+            it.plugins {
+                create("grpc")
+            }
+        }
+    }
+}
+
+// CONFIGURATION FOR SPOTLESS (Code Formatting)
+spotless {
+    java {
+        target("src/*/java/**/*.java")
+        googleJavaFormat("1.19.2").aosp().reflowLongStrings()
+        importOrder()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
 }

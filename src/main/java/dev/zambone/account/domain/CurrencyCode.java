@@ -1,7 +1,7 @@
 package dev.zambone.account.domain;
 
 public enum CurrencyCode {
-  USD,
-  BRL,
-  EUR
+    USD,
+    BRL,
+    EUR
 }

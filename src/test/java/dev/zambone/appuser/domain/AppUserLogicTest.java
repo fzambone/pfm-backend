@@ -1,14 +1,13 @@
 package dev.zambone.appuser.domain;
 
-import dev.zambone.account.exceptions.ResourceNotFoundException;
-import dev.zambone.appuser.testing.AppUserTestRig;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.util.UUID;
-
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
+
+import dev.zambone.common.exceptions.ResourceNotFoundException;
+import dev.zambone.appuser.testing.AppUserTestRig;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AppUserLogicTest {
 
@@ -22,12 +21,7 @@ public class AppUserLogicTest {
   @Test
   void shouldCreate_successfully() {
     UserContext context = new UserContext(UUID.randomUUID());
-    var createdUser =  rig.logic().create(
-        context,
-        "test@zambone.dev",
-        "secret123",
-        "Test User"
-    );
+    var createdUser = rig.logic().create(context, "test@zambone.dev", "secret123", "Test User");
 
     // Verify structure
     assertThat(createdUser).isNotNull();
@@ -50,12 +44,8 @@ public class AppUserLogicTest {
   @Test
   void shouldSetCreatedBy_fromContext() {
     UserContext context = new UserContext(UUID.randomUUID());
-    var createdUser = rig.logic().create(
-        context,
-        "test@zambone.dev",
-        "secret123",
-        "Test Context user"
-    );
+    var createdUser =
+        rig.logic().create(context, "test@zambone.dev", "secret123", "Test Context user");
 
     // Verify auditing trail user
     assertThat(createdUser.createdBy()).isEqualTo(context.actorId());
@@ -65,14 +55,24 @@ public class AppUserLogicTest {
   void shouldThrow_whenCreating_withDuplicateEmail() {
     UserContext context = new UserContext(UUID.randomUUID());
     rig.createPersistedUser("duplicate@zambone.dev");
-    assertThrows(UserAlreadyExistsException.class, () -> rig.logic().create(context, "duplicate@zambone.dev", "secret_123", "zambone"));
+    assertThrows(
+        UserAlreadyExistsException.class,
+        () ->
+            rig.logic()
+                .create(context, "duplicate@zambone.dev", "secret_123", "zambone"));
   }
 
   @Test
   void shouldReactivate_whenUserWasDeleted() {
     UserContext context = new UserContext(UUID.randomUUID());
     rig.createDeletedUser("reactivate@zambone.dev");
-    var reactivatedUser = rig.logic().create(context, "reactivate@zambone.dev", "new_secret_123", "Reactivated User");
+    var reactivatedUser =
+        rig.logic()
+            .create(
+                context,
+                "reactivate@zambone.dev",
+                "new_secret_123",
+                "Reactivated User");
     assertThat(reactivatedUser).isNotNull();
     assertThat(reactivatedUser.deletedAt()).isNull();
     assertThat(reactivatedUser.fullName()).isEqualTo("Reactivated User");
@@ -91,18 +91,21 @@ public class AppUserLogicTest {
   void shouldThrow_whenGetting_deletedUser() {
     var deletedUser = rig.createDeletedUser("deleted@zambone.dev");
 
-    assertThrows(ResourceNotFoundException.class, () -> {
-      rig.logic().get(new UserContext(deletedUser.id()), deletedUser.id());
-    });
+    assertThrows(
+        ResourceNotFoundException.class,
+        () -> {
+          rig.logic().get(new UserContext(deletedUser.id()), deletedUser.id());
+        });
   }
 
   @Test
   void shouldThrow_whenGetting_differentUser() {
     var deletedUser = rig.createDeletedUser("delete@zambone.dev");
 
-    assertThrows(ResourceNotFoundException.class, () -> {
-      rig.logic().get(new UserContext(UUID.randomUUID()), deletedUser.id());
-    });
+    assertThrows(
+        ResourceNotFoundException.class,
+        () -> {
+          rig.logic().get(new UserContext(UUID.randomUUID()), deletedUser.id());
+        });
   }
-
 }

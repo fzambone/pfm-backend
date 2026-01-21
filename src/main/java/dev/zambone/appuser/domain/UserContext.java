@@ -6,11 +6,11 @@ import java.util.UUID;
 
 public record UserContext(UUID actorId, Set<UUID> accessibleHouseholdIds) {
 
-  public UserContext(UUID actorId) {
-    this(actorId, Collections.emptySet());
-  }
+    public UserContext(UUID actorId) {
+        this(actorId, Collections.emptySet());
+    }
 
-  public boolean hasAccessToHousehold(UUID householdId) {
-    return accessibleHouseholdIds.contains(householdId);
-  }
+    public boolean hasAccessToHousehold(UUID householdId) {
+        return accessibleHouseholdIds.contains(householdId);
+    }
 }

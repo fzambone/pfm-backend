@@ -2,157 +2,167 @@ package dev.zambone.household.storage;
 
 import dev.zambone.household.domain.Household;
 import dev.zambone.household.domain.HouseholdRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.sql.DataSource;
 import java.sql.*;
 import java.time.Instant;
 import java.util.Calendar;
 import java.util.Optional;
 import java.util.TimeZone;
 import java.util.UUID;
+import javax.sql.DataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SqlHouseholdRepository implements HouseholdRepository {
 
-  private static final Logger logger = LoggerFactory.getLogger(SqlHouseholdRepository.class);
-  private final DataSource dataSource;
-  private static final Calendar UTC = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+    private static final Logger logger = LoggerFactory.getLogger(SqlHouseholdRepository.class);
+    private final DataSource dataSource;
+    private static final Calendar UTC = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
-  public SqlHouseholdRepository(DataSource dataSource) {
-    this.dataSource = dataSource;
-  }
+    public SqlHouseholdRepository(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
-  @Override
-  public Optional<Household> findByIdAndUserId(UUID householdId, UUID userId) {
+    @Override
+    public Optional<Household> findByIdAndUserId(UUID householdId, UUID userId) {
 
-    var sql = """
+        var sql =
+                """
         SELECT * FROM households h
         INNER JOIN household_members hm ON h.id = hm.household_id
         WHERE h.id = ? AND hm.app_user_id = ?
           AND hm.deleted_at IS NULL
         """;
 
-    try (Connection connection = dataSource.getConnection();
-        PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        try (Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
-      preparedStatement.setObject(1, householdId);
-      preparedStatement.setObject(2, userId);
+            preparedStatement.setObject(1, householdId);
+            preparedStatement.setObject(2, userId);
 
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        if (resultSet.next()) {
-          var foundHousehold = new HouseholdMapper().map(resultSet);
-          logger.debug("Fetched household by Id: [id={}, name={}]", foundHousehold.id(), foundHousehold.name());
-          return Optional.of(foundHousehold);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    var foundHousehold = new HouseholdMapper().map(resultSet);
+                    logger.debug(
+                            "Fetched household by Id: [id={}, name={}]",
+                            foundHousehold.id(),
+                            foundHousehold.name());
+                    return Optional.of(foundHousehold);
+                }
+            }
+            throw new IllegalArgumentException("Household not found or access denied");
+        } catch (SQLException e) {
+            logger.error("Error fetching Household by Id", e);
+            throw new RuntimeException(e);
         }
-      }
-      throw new IllegalArgumentException("Household not found or access denied");
-    } catch (SQLException e) {
-      logger.error("Error fetching Household by Id", e);
-      throw new RuntimeException(e);
     }
-  }
 
-  @Override
-  public Household save(Household household) {
+    @Override
+    public Household save(Household household) {
 
-    var sql = """
+        var sql =
+                """
         INSERT INTO households (id, name, is_active, created_at, updated_at, deleted_at, created_by, updated_by)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
           RETURNING *
     """;
 
-    try(Connection connection = dataSource.getConnection();
-        PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        try (Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
-      int i = 1;
-      preparedStatement.setObject(i++, household.id());
-      preparedStatement.setString(i++, household.name());
-      preparedStatement.setBoolean(i++, household.isActive());
-      preparedStatement.setTimestamp(i++, Timestamp.from(household.createdAt()), UTC);
-      preparedStatement.setTimestamp(i++,Timestamp.from(household.updatedAt()), UTC);
-      preparedStatement.setNull(i++, Types.TIMESTAMP);
-      preparedStatement.setObject(i++, household.createdBy());
-      preparedStatement.setObject(i++, household.updatedBy());
+            int i = 1;
+            preparedStatement.setObject(i++, household.id());
+            preparedStatement.setString(i++, household.name());
+            preparedStatement.setBoolean(i++, household.isActive());
+            preparedStatement.setTimestamp(i++, Timestamp.from(household.createdAt()), UTC);
+            preparedStatement.setTimestamp(i++, Timestamp.from(household.updatedAt()), UTC);
+            preparedStatement.setNull(i++, Types.TIMESTAMP);
+            preparedStatement.setObject(i++, household.createdBy());
+            preparedStatement.setObject(i++, household.updatedBy());
 
-      try (ResultSet resultSet = preparedStatement.executeQuery()) {
-        if (resultSet.next()) {
-          var savedHousehold = new HouseholdMapper().map(resultSet);
-          logger.info("Created new Household: [id={}, name={}]", savedHousehold.id(), savedHousehold.name());
-          return savedHousehold;
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    var savedHousehold = new HouseholdMapper().map(resultSet);
+                    logger.info(
+                            "Created new Household: [id={}, name={}]",
+                            savedHousehold.id(),
+                            savedHousehold.name());
+                    return savedHousehold;
+                }
+                throw new SQLException("Creating Household failed, no rows affected.");
+            }
+
+        } catch (SQLException e) {
+            logger.error("Error saving new Household", e);
+            throw new RuntimeException(e);
         }
-        throw new SQLException("Creating Household failed, no rows affected.");
-      }
-
-    } catch (SQLException e) {
-      logger.error("Error saving new Household", e);
-      throw new RuntimeException(e);
     }
-  }
 
-  @Override
-  public boolean update(Household updatedHousehold, Instant version) {
-    var sql = """
+    @Override
+    public boolean update(Household updatedHousehold, Instant version) {
+        var sql =
+                """
         UPDATE households
         SET name = ?, updated_at = ?, updated_by = ?
         WHERE id = ? AND updated_at = ?
           AND deleted_at IS NULL
         """;
 
-    try (Connection connection = dataSource.getConnection();
-    PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        try (Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
-      int i = 1;
-      preparedStatement.setString(i++, updatedHousehold.name());
-      preparedStatement.setTimestamp(i++, Timestamp.from(Instant.now()), UTC);
-      preparedStatement.setObject(i++, updatedHousehold.updatedBy());
-      preparedStatement.setObject(i++, updatedHousehold.id());
-      preparedStatement.setTimestamp(i++, Timestamp.from(version), UTC);
+            int i = 1;
+            preparedStatement.setString(i++, updatedHousehold.name());
+            preparedStatement.setTimestamp(i++, Timestamp.from(Instant.now()), UTC);
+            preparedStatement.setObject(i++, updatedHousehold.updatedBy());
+            preparedStatement.setObject(i++, updatedHousehold.id());
+            preparedStatement.setTimestamp(i++, Timestamp.from(version), UTC);
 
-      return preparedStatement.executeUpdate() > 0;
+            return preparedStatement.executeUpdate() > 0;
 
-    } catch (SQLException e) {
-      logger.error("Error updating Household: [id={}]", updatedHousehold.id());
-      throw new RuntimeException(e);
+        } catch (SQLException e) {
+            logger.error("Error updating Household: [id={}]", updatedHousehold.id());
+            throw new RuntimeException(e);
+        }
     }
-  }
 
-  @Override
-  public boolean delete(Household household, Instant version) {
-    var sql = """
+    @Override
+    public boolean delete(Household household, Instant version) {
+        var sql =
+                """
        UPDATE households
        SET deleted_at = ?
        WHERE id = ? AND updated_at = ?
        """;
 
-    try (Connection connection = dataSource.getConnection();
-    PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        try (Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
-      int i = 1;
-      preparedStatement.setTimestamp(i++, Timestamp.from(household.deletedAt()), UTC);
-      preparedStatement.setObject(i++, household.id());
-      preparedStatement.setTimestamp(i++, Timestamp.from(version), UTC);
+            int i = 1;
+            preparedStatement.setTimestamp(i++, Timestamp.from(household.deletedAt()), UTC);
+            preparedStatement.setObject(i++, household.id());
+            preparedStatement.setTimestamp(i++, Timestamp.from(version), UTC);
 
-      return preparedStatement.executeUpdate() > 0;
-    } catch (SQLException e) {
-      logger.error("Error deleting Household: [id={}]", household.id());
-      throw new RuntimeException(e);
+            return preparedStatement.executeUpdate() > 0;
+        } catch (SQLException e) {
+            logger.error("Error deleting Household: [id={}]", household.id());
+            throw new RuntimeException(e);
+        }
     }
-  }
 
-  private static class HouseholdMapper {
+    private static class HouseholdMapper {
 
-    public Household map(ResultSet resultSet) throws SQLException {
-      return new Household(
-          UUID.fromString(resultSet.getString("id")),
-          resultSet.getString("name"),
-          resultSet.getBoolean("is_active"),
-          resultSet.getTimestamp("created_at").toInstant(),
-          resultSet.getTimestamp("updated_at").toInstant(),
-          resultSet.getTimestamp("deleted_at") != null ? resultSet.getTimestamp("deleted_at").toInstant() : null,
-          UUID.fromString(resultSet.getString("created_by")),
-          UUID.fromString(resultSet.getString("updated_by"))
-      );
+        public Household map(ResultSet resultSet) throws SQLException {
+            return new Household(
+                    UUID.fromString(resultSet.getString("id")),
+                    resultSet.getString("name"),
+                    resultSet.getBoolean("is_active"),
+                    resultSet.getTimestamp("created_at").toInstant(),
+                    resultSet.getTimestamp("updated_at").toInstant(),
+                    resultSet.getTimestamp("deleted_at") != null
+                            ? resultSet.getTimestamp("deleted_at").toInstant()
+                            : null,
+                    UUID.fromString(resultSet.getString("created_by")),
+                    UUID.fromString(resultSet.getString("updated_by")));
+        }
     }
-  }
 }

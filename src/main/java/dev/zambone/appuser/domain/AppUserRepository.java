@@ -6,11 +6,11 @@ import java.util.UUID;
 
 public interface AppUserRepository {
 
-  Optional<AppUser> findByEmail(String email);
+    Optional<AppUser> findByEmail(String email);
 
-  Optional<AppUser> findById(UUID id);
+    Optional<AppUser> findById(UUID id);
 
-  AppUser save(AppUser user);
+    AppUser save(AppUser user);
 
-  boolean update(AppUser updatedUser, Instant version);
+    boolean update(AppUser updatedUser, Instant version);
 }

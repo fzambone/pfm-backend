@@ -2,7 +2,8 @@ package dev.zambone.account.testing;
 
 import dev.zambone.account.domain.Account;
 import dev.zambone.account.domain.AccountLogic;
-
+import dev.zambone.appuser.domain.AppUser;
+import dev.zambone.household.domain.Household;
 import java.util.UUID;
 
 public class AccountTestRig {
@@ -15,12 +16,12 @@ public class AccountTestRig {
     this.logic = new AccountLogic(repository);
   }
 
-  public Account createPersistedAccount(String name, UUID householdId) {
-    return factory.createAndPersistAccount(name, householdId);
+  public Account createPersistedAccount(String name, UUID householdId, UUID userId) {
+    return factory.createAndPersistAccount(name, householdId, userId);
   }
 
-  public Account createDeletedAccount(String name, UUID householdId) {
-    return factory.createAndPersistDeletedAccount(name, householdId);
+  public Account createDeletedAccount(String name, UUID householdId, UUID userId) {
+    return factory.createAndPersistDeletedAccount(name, householdId, userId);
   }
 
   public AccountLogic logic() {
