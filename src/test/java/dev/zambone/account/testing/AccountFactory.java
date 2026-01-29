@@ -34,6 +34,25 @@ public class AccountFactory {
         return repository.save(account);
     }
 
+    public Account createAndPersistAccount(
+            String name, UUID householdId, UUID userId, AccountType accountType) {
+        var account =
+                new Account(
+                        UUID.randomUUID(),
+                        householdId,
+                        name,
+                        accountType,
+                        CurrencyCode.USD,
+                        BigDecimal.ZERO,
+                        true,
+                        Instant.now(),
+                        Instant.now(),
+                        null,
+                        userId,
+                        userId);
+        return repository.save(account);
+    }
+
     public Account createAndPersistDeletedAccount(String name, UUID householdId, UUID userId) {
         var account =
                 new Account(
