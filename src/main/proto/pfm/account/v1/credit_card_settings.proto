@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package pfm.account.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "dev.zambone.proto.account.v1";
+option java_outer_classname = "CreditCardSettingsServiceProto";
+
+service CreditCardSettingsService {
+  rpc CreateCreditCardSettings (CreateCreditCardSettingsRequest) returns (CreateCreditCardSettingsResponse);
+  rpc GetCreditCardSettings (GetCreditCardSettingsRequest) returns (GetCreditCardSettingsResponse);
+  rpc UpdateCreditCardSettings (UpdateCreditCardSettingsRequest) returns (UpdateCreditCardSettingsResponse);
+}
+
+message CreditCardSettings {
+  string account_id = 1;
+  int32 closing_day = 2;
+  int32 due_day = 3;
+  string limit_amount = 4;
+  bool is_active = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  google.protobuf.Timestamp deleted_at = 8;
+  string created_by = 9;
+  string updated_by = 10;
+}
+
+message CreateCreditCardSettingsRequest {
+  string account_id = 1;
+  int32 closing_day = 2;
+  int32 due_day = 3;
+  string limit_amount = 4;
+}
+
+message CreateCreditCardSettingsResponse {
+  CreditCardSettings credit_card_settings = 1;
+}
+
+message GetCreditCardSettingsRequest {
+  string account_id = 1;
+}
+
+message GetCreditCardSettingsResponse {
+  CreditCardSettings credit_card_settings = 1;
+}
+
+message UpdateCreditCardSettingsRequest {
+  string account_id = 1;
+  int32 closing_day = 2;
+  int32 due_day = 3;
+  string limit_amount = 4;
+  google.protobuf.Timestamp version = 5;
+}
+
+message UpdateCreditCardSettingsResponse {
+  CreditCardSettings credit_card_settings = 1;
+}
